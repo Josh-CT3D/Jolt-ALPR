@@ -1,0 +1,6 @@
+{
+  "name": "ALPR Dashcam Architecture",
+  "description": "An interactive architecture explorer and complete Kotlin codebase for a Pixel 10 edge-AI automatic license plate reader (ALPR) and driver-rating logger.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
