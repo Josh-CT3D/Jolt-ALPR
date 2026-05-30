@@ -6,7 +6,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { 
   Cpu, 
-  Mic, 
   Database, 
   MapPin, 
   Clock, 
@@ -485,9 +484,55 @@ export default function App() {
     localStorage.setItem("jolt_logs", JSON.stringify(updated));
   };
 
+  const playBadDriverBell = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+
+      // Note 1 (Ding) - High metallic frequency
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.frequency.setValueAtTime(880, now); // A5
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.9);
+
+      // Note 2 (Dong) - Lower note, timed 150ms later
+      setTimeout(() => {
+        try {
+          if (ctx.state === "closed") return;
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.frequency.setValueAtTime(784, ctx.currentTime); // G5
+          gain2.gain.setValueAtTime(0.10, ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+          
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start(ctx.currentTime);
+          osc2.stop(ctx.currentTime + 1.1);
+        } catch (innerErr) {
+          // Ignore
+        }
+      }, 150);
+    } catch (err) {
+      console.warn("Could not play synthesized audio bell:", err);
+    }
+  };
+
   const handleManualActionLog = (rating: "GOOD" | "BAD") => {
     // Flash visual feedback
     setIncidentLoggedFlash(true);
+    
+    if (rating === "BAD") {
+      playBadDriverBell();
+    }
     
     setTimeout(() => {
       setIncidentLoggedFlash(false);
@@ -585,7 +630,7 @@ export default function App() {
       </header>
 
       {/* --- Main Viewport Layout --- */}
-      <main className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-6 w-full">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col gap-6 w-full">
         
         {/* =========================================================
             Dashcam HUD Interactive Simulator
@@ -604,8 +649,45 @@ export default function App() {
 
           {/* Interactive Screen Dashboard featuring Sophisticated Dark theme elements */}
           <div className={`relative rounded-xl border transition-all duration-300 ${incidentLoggedFlash ? "border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.2)]" : "border-white/10"} bg-[#0A0A0A] overflow-hidden shadow-2xl`}>
+            
+            {/* Dedicated Top Controls Bar (Move switcher OUT of the live camera feed) */}
+            <div className="px-4 py-3 bg-[#080808] border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs">
+              <div className="flex items-center gap-1.5 google-drive-bar-wrap w-full sm:w-auto">
+                <span className="text-[9px] uppercase tracking-widest text-slate-500 font-bold mr-1.5 hidden xs:inline">CAMERA IN:</span>
+                <div className="flex bg-[#050505] p-0.5 rounded border border-white/5 w-full xs:w-auto">
+                  <button
+                    onClick={() => setCameraMode("simulated")}
+                    className={`flex-1 xs:flex-initial px-3 py-1.5 rounded transition-all font-bold flex items-center justify-center gap-1.5 ${cameraMode === "simulated" ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "text-slate-400 hover:text-slate-200 border border-transparent"}`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>EMULATOR REPLAY</span>
+                  </button>
+                  <button
+                    onClick={() => setCameraMode("live")}
+                    className={`flex-1 xs:flex-initial px-3 py-1.5 rounded transition-all font-bold flex items-center justify-center gap-1.5 ${cameraMode === "live" ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "text-slate-400 hover:text-slate-200 border border-transparent"}`}
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    <span>LIVE WEBCAM</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status information and errors */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                {webcamError && cameraMode === "live" && (
+                  <div className="text-[9px] font-mono text-red-400 bg-red-950/60 border border-red-500/20 px-2 py-1 rounded">
+                    ⚠️ Webcam Offline
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 text-slate-400 text-[10px] uppercase font-bold tracking-wider">
+                  <span className={`w-1.5 h-1.5 rounded-full ${cameraMode === "live" ? "bg-emerald-500 shadow-[0_0_6px_#10b981]" : "bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]"} animate-pulse`} />
+                  <span>{cameraMode === "live" ? "Live Edge Lens" : "Simulated Replay"}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Camera Viewport Area */}
-            <div className="h-[340px] w-full relative select-none flex items-center justify-center overflow-hidden bg-gradient-to-tr from-[#050505] via-[#111] to-[#050505]">
+            <div className="h-[280px] sm:h-[340px] w-full relative select-none flex items-center justify-center overflow-hidden bg-gradient-to-tr from-[#050505] via-[#111] to-[#050505]">
               
               {/* Red overlay flash upon incident logging */}
               {incidentLoggedFlash && (
@@ -632,38 +714,6 @@ export default function App() {
                   <line x1="50%" y1="10%" x2="95%" y2="100%" stroke="#FFF" strokeWidth="1.5" strokeDasharray="4 4" />
                   <line x1="50%" y1="10%" x2="50%" y2="100%" stroke="#FFF" strokeWidth="3" strokeDasharray="8 8" />
                 </svg>
-              </div>
-
-              {/* Edge HUD Switcher and Label Indicators (Moved to top-left) */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2 z-30">
-                <div className="flex bg-black/90 p-0.5 rounded border border-white/10 text-[9px] font-mono shadow-md backdrop-blur-sm">
-                  <button
-                    onClick={() => setCameraMode("simulated")}
-                    className={`px-2 py-0.5 rounded transition-all font-bold flex items-center gap-1 ${cameraMode === "simulated" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-slate-200 border border-transparent"}`}
-                  >
-                    <Sliders className="w-2.5 h-2.5" />
-                    <span>EMULATOR REPLAY</span>
-                  </button>
-                  <button
-                    onClick={() => setCameraMode("live")}
-                    className={`px-2 py-0.5 rounded transition-all font-bold flex items-center gap-1 ${cameraMode === "live" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-slate-200 border border-transparent"}`}
-                  >
-                    <Video className="w-2.5 h-2.5" />
-                    <span>LIVE WEBCAM</span>
-                  </button>
-                </div>
-                
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/85 border border-white/10 rounded font-mono text-[8px] text-slate-300 font-semibold tracking-wide">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)] animate-pulse" />
-                    {cameraMode === "live" ? "ACTIVE WEB DEVICE - REAR ENVIRONMENT LENS" : "5.0X TELEPHOTO FOCUS LENS (EMULATED)"}
-                  </div>
-                  {webcamError && cameraMode === "live" && (
-                    <div className="text-[7.5px] font-mono text-red-400 bg-red-950/80 border border-red-500/20 px-2 py-0.5 rounded tracking-tighter">
-                      ⚠️ {webcamError}
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* GPS HUD Info box on top right */}
@@ -886,6 +936,125 @@ export default function App() {
             </div>
           </div>
 
+          {/* On-Device Multi-Stage Vision Pipeline Live Diagnostics Panel */}
+          <div className="bg-[#0A0A0A] rounded-xl border border-white/10 p-5 flex flex-col gap-4 font-mono text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2 font-bold text-slate-400 uppercase tracking-widest text-[10px]">
+                <Cpu className="w-4 h-4 text-emerald-400 animate-pulse" />
+                <span>On-Device Multi-Stage ML Diagnostics</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-ping" />
+                <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold uppercase">
+                  pipeline_active
+                </span>
+              </div>
+            </div>
+
+            {/* Hardware & Lens Specification Header Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#050505] p-3.5 rounded-lg border border-white/5 text-[11px]">
+              <div className="flex flex-col gap-2">
+                <div className="text-slate-500 uppercase font-bold text-[9px] tracking-wider">CameraX Lens & Device Hardware</div>
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1 px-1.5 bg-cyan-500/10 text-cyan-400 rounded-md font-bold mt-0.5 text-[10px]">
+                    5.0X
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-white">5x Optical Telephoto Lens</div>
+                    <div className="text-slate-400 text-[10px] mt-0.5">androidx.camera.core (10.8 MP Dual PD Sensor)</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="text-slate-500 uppercase font-bold text-[9px] tracking-wider">ImageAnalysis Thermal Control</div>
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1 px-1.5 bg-amber-500/10 text-amber-400 rounded-md font-bold mt-0.5 text-[10px]">
+                    1 FPS
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-white">30 FPS Streamed vs 1 FPS Extracted</div>
+                    <div className="text-slate-400 text-[10px] mt-0.5">Throttled frame extraction interval to manage system thermals</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pipeline Stage Flow Visualization */}
+            <div className="flex flex-col gap-3">
+              <div className="text-slate-500 uppercase font-bold text-[9px] tracking-wider px-1">Hybrid Offline Inference Chain</div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* Stage 1 */}
+                <div className="bg-[#050505] border border-emerald-500/10 hover:border-emerald-500/30 p-3.5 rounded-lg flex flex-col gap-2 transition-all">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+                    <span className="text-[9.5px] font-extrabold text-slate-400">STAGE 1</span>
+                    <span className="text-[8.5px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 rounded border border-emerald-500/20 uppercase tracking-tighter">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-white text-[11px]">LiteRT YOLOv8 (NPU)</h5>
+                    <p className="text-[9.5px] text-slate-450 mt-1 leading-snug">Localizes vehicles and plate bounding boxes via offline weights.</p>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 bg-emerald-950/20 border border-emerald-500/10 rounded px-2 py-1 text-[10px]">
+                    <span className="text-emerald-400 font-extrabold">Detector:</span>
+                    <span className="text-slate-300 font-semibold">{currentActiveFrame.vehicleName}</span>
+                  </div>
+                </div>
+
+                {/* Stage 2 */}
+                <div className={`bg-[#050505] border p-3.5 rounded-lg flex flex-col gap-2 transition-all ${currentActiveFrame.plateDetected ? "border-cyan-500/20 hover:border-cyan-500/40" : "border-white/5 opacity-55"}`}>
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+                    <span className="text-[9.5px] font-extrabold text-slate-400">STAGE 2</span>
+                    <span className={`text-[8.5px] font-bold px-1.5 rounded border uppercase tracking-tighter ${currentActiveFrame.plateDetected ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" : "text-slate-500 bg-white/5 border-white/5"}`}>
+                      {currentActiveFrame.plateDetected ? "PLATE OCR" : "STANDBY"}
+                    </span>
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-white text-[11px]">ML Kit OCR V2</h5>
+                    <p className="text-[9.5px] text-slate-450 mt-1 leading-snug">Renders plate crop to Google Text Recognition (Digital Goods) parser.</p>
+                  </div>
+                  {currentActiveFrame.plateDetected ? (
+                    <div className="mt-1 flex items-center gap-1.5 bg-cyan-950/20 border border-cyan-500/15 rounded px-2 py-1 text-[10px]">
+                      <span className="text-cyan-400 font-extrabold">OCR:</span>
+                      <span className="text-white font-black">{currentActiveFrame.plateNumber}</span>
+                      <span className="text-slate-400">({(currentActiveFrame.plateConfidence * 100).toFixed(0)}%)</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-slate-600 text-[9.5px] italic leading-tight px-1 text-center py-1 bg-black/40 rounded border border-white/5">
+                      Plate obscured / localized crop bypass
+                    </div>
+                  )}
+                </div>
+
+                {/* Stage 3 */}
+                <div className={`bg-[#050505] border p-3.5 rounded-lg flex flex-col gap-2 transition-all ${!currentActiveFrame.plateDetected ? "border-yellow-500/20 hover:border-yellow-500/40" : "border-white/5 opacity-55"}`}>
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+                    <span className="text-[9.5px] font-extrabold text-slate-400">STAGE 3</span>
+                    <span className={`text-[8.5px] font-bold px-1.5 rounded border uppercase tracking-tighter ${!currentActiveFrame.plateDetected ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" : "text-slate-500 bg-white/5 border-white/5"}`}>
+                      {!currentActiveFrame.plateDetected ? "FALLBACK" : "STANDBY"}
+                    </span>
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-white text-[11px]">LiteRT MMC Classifier</h5>
+                    <p className="text-[9.5px] text-slate-450 mt-1 leading-snug">Characterizes vehicle model/color if plate OCR results are obscured.</p>
+                  </div>
+                  {!currentActiveFrame.plateDetected ? (
+                    <div className="mt-1 flex items-center gap-2 bg-yellow-950/20 border border-yellow-500/15 rounded px-2 py-1 text-[10px]">
+                      <span className="text-yellow-400 font-extrabold">MMC Type:</span>
+                      <span className="text-white font-semibold">{currentActiveFrame.vehicleName}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-slate-600 text-[9.5px] italic leading-tight px-1 text-center py-1 bg-black/40 rounded border border-white/5">
+                      OCR check succeeded, MMC bypass
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* SQLite / Room Logs list Registry styled as Table/Card list in Sophisticated Dark style */}
           <div className="bg-[#0A0A0A] rounded-xl border border-white/10 p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
@@ -1039,7 +1208,7 @@ export default function App() {
                 {logs.length === 0 ? (
                   <div className="h-28 border border-dashed border-white/10 rounded flex flex-col items-center justify-center text-center p-6 bg-[#050505]">
                     <p className="text-xs text-slate-500">No sqlite_logs found in active session memory.</p>
-                    <p className="text-[10px] text-slate-600 mt-2">Trigger real-time edge ratings via manual buttons or speech commands.</p>
+                    <p className="text-[10px] text-slate-600 mt-2">Click "INDICATE BAD DRIVER" to tag reckless driver behavior in real-time.</p>
                   </div>
                 ) : (
                   logs.map(log => (
