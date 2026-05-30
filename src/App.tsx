@@ -109,7 +109,7 @@ const CT3DLogo = () => (
 
       {/* Organic Crystalline Lattice/Mesh text 3D with glowing neon mesh outline */}
       <text
-        x="54"
+        x="38"
         y="32"
         fontFamily="system-ui, -apple-system, sans-serif"
         fontWeight="400"
@@ -547,8 +547,7 @@ export default function App() {
             <CT3DLogo />
             <div>
               <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
-                Pixel Jolt
-                <span className="text-[10px] bg-white/5 text-slate-300 px-2 py-0.5 rounded border border-white/10 font-mono tracking-wider">EDGE-AI ON-DEVICE</span>
+                Jolt ALPR
               </h1>
             </div>
           </div>
@@ -569,13 +568,6 @@ export default function App() {
             <span className="text-slate-500 text-[10px]">BATTERY:</span>
             <span className={`text-[10px] font-bold ${currentBattery > 20 ? "text-emerald-400" : "text-red-500"}`}>{currentBattery}%</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-500 hidden sm:inline">CYCLE RATE</span>
-            <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded border border-white/10">
-              <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)] animate-pulse" : "bg-zinc-600"}`} />
-              <span className="font-mono text-[10px] text-slate-300">1.0 FPS</span>
-            </div>
-          </div>
           <button 
             onClick={() => setIsPlaying(!isPlaying)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10 text-[11px] font-medium transition-all"
@@ -595,13 +587,13 @@ export default function App() {
         </div>
       </header>
 
-      {/* --- Main Viewport Layout grid --- */}
-      <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* --- Main Viewport Layout --- */}
+      <main className="max-w-4xl mx-auto px-6 py-8 flex flex-col gap-6 w-full">
         
         {/* =========================================================
-            LEFT COLUMN: Dashcam HUD Interactive Simulator (Grid: 7)
+            Dashcam HUD Interactive Simulator
             ========================================================= */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
           
           <div className="flex items-center justify-between">
             <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 font-mono">
@@ -1117,77 +1109,6 @@ export default function App() {
                   ))
                 )}
               </AnimatePresence>
-            </div>
-          </div>
-
-        </div>
-
-        {/* =========================================================
-            RIGHT COLUMN: Kotlin Codebase Explorer + Technical Guide (Grid: 5)
-            ========================================================= */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          
-          <div className="flex items-center justify-between animate-fade-in">
-            <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 font-mono">
-              <Cpu className="w-4 h-4 text-cyan-400" /> Android Codebase Explorer
-            </h2>
-            <span className="text-[10px] font-mono text-slate-500 bg-[#0A0A0A] border border-white/10 px-2 py-0.5 rounded">Kotlin Native SDK</span>
-          </div>
-
-          {/* Interactive Code Hub Card from Sophisticated Dark design */}
-          <div className="rounded-xl border border-white/10 bg-[#0A0A0A] flex flex-col overflow-hidden shadow-2xl">
-            {/* Explorer File selector list */}
-            <div className="border-b border-white/10 bg-[#080808] p-2 overflow-x-auto select-none flex gap-1.5 custom-scrollbar-x select-none">
-              {androidCodebase.map(file => (
-                <button
-                  key={file.name}
-                  onClick={() => setSelectedFile(file)}
-                  className={`px-3 py-1.5 rounded text-xs font-mono font-medium flex items-center gap-1.5 transition-all whitespace-nowrap ${selectedFile.name === file.name ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "bg-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"}`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  {file.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Summary description of current selected file */}
-            <div className="bg-black/40 border-b border-white/10 px-4 py-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-mono text-cyan-400 tracking-widest uppercase">Target Module Blueprint</span>
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed">{selectedFile.description}</p>
-                </div>
-                {/* Copy button */}
-                <button
-                  onClick={handleCopyCode}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-[10px] font-mono text-slate-300 font-medium border border-white/10 active:scale-95 transition-all"
-                >
-                  {isCopied ? (
-                    <>
-                      <Check className="w-3 h-3 text-cyan-400" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3 text-slate-400" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Code Mirror Viewer with deep #050505 palette matching */}
-            <div className="max-h-[440px] overflow-y-auto overflow-x-auto p-4 bg-[#050505] font-mono text-[11px] text-slate-300 custom-scrollbar relative">
-              <pre className="mt-1 leading-normal select-all">
-                <code>{selectedFile.content}</code>
-              </pre>
-            </div>
-            
-            {/* File explorer path footer */}
-            <div className="border-t border-white/10 bg-[#0A0A0A] py-2.5 px-4 flex items-center justify-between text-[9px] font-mono text-slate-500">
-              <span>PATH: <strong className="text-slate-400">android/{selectedFile.path}</strong></span>
-              <span className="text-cyan-400 uppercase font-black tracking-widest bg-cyan-400/10 px-2 py-0.5 rounded">COMPILED_STABLE</span>
             </div>
           </div>
 
