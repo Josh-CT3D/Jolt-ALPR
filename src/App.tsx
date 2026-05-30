@@ -192,10 +192,9 @@ export default function App() {
   const [currentBattery, setCurrentBattery] = useState<number>(94);
   const [fpsTrigger, setFpsTrigger] = useState<boolean>(false);
   const [processTime, setProcessTime] = useState<number>(142);
-  const [activeSpeechCommand, setActiveSpeechCommand] = useState<string | null>(null);
+  const [incidentLoggedFlash, setIncidentLoggedFlash] = useState<boolean>(false);
   const [logs, setLogs] = useState<LocalLog[]>([]);
   const [hudMessage, setHudMessage] = useState<string>("Jolt ALPR Pipeline Initialized");
-  const [pulseMic, setPulseMic] = useState<boolean>(false);
 
   // Active coordinates simulating vehicle moving down road
   const [baseCoords, setBaseCoords] = useState<{ lat: number; lon: number }>({
@@ -487,14 +486,12 @@ export default function App() {
   };
 
   const handleManualActionLog = (rating: "GOOD" | "BAD") => {
-    // Flash trigger mic visual feedback
-    setPulseMic(true);
-    setActiveSpeechCommand(`"${rating === "GOOD" ? "Log Good Driver" : "Log Bad Driver"}" detected`);
+    // Flash visual feedback
+    setIncidentLoggedFlash(true);
     
     setTimeout(() => {
-      setPulseMic(false);
-      setActiveSpeechCommand(null);
-    }, 1800);
+      setIncidentLoggedFlash(false);
+    }, 1200);
 
     const activeFrame = SIMULATED_FRAMES[currentFrameIndex];
     const isPlate = activeFrame.plateDetected;
@@ -515,7 +512,7 @@ export default function App() {
 
     const newLogs = [newLog, ...logs];
     saveLogs(newLogs);
-    setHudMessage(`Inserted Log [${newLog.id}] to Database (Rating: ${rating}) (Battery: ${calculatedBattery}%)`);
+    setHudMessage(`Log Created: [${newLog.id}] classified as ${rating === "BAD" ? "⚠️ RECKLESS/BAD DRIVER" : "✓ SAFE/GOOD DRIVER"}`);
   };
 
   const handleDeleteLog = (id: string) => {
@@ -606,10 +603,20 @@ export default function App() {
           </div>
 
           {/* Interactive Screen Dashboard featuring Sophisticated Dark theme elements */}
-          <div className="relative rounded-xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl">
+          <div className={`relative rounded-xl border transition-all duration-300 ${incidentLoggedFlash ? "border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.2)]" : "border-white/10"} bg-[#0A0A0A] overflow-hidden shadow-2xl`}>
             {/* Camera Viewport Area */}
             <div className="h-[340px] w-full relative select-none flex items-center justify-center overflow-hidden bg-gradient-to-tr from-[#050505] via-[#111] to-[#050505]">
               
+              {/* Red overlay flash upon incident logging */}
+              {incidentLoggedFlash && (
+                <div className="absolute inset-0 bg-red-600/10 pointer-events-none z-40 flex items-center justify-center border-4 border-red-500 animate-pulse">
+                  <div className="bg-red-950/90 border border-red-500 text-red-400 px-4 py-2 rounded-lg font-mono text-xs font-black tracking-widest uppercase flex items-center gap-2 shadow-2xl">
+                    <AlertCircle className="w-4 h-4 animate-bounce text-red-500" />
+                    <span>LOGGING: RECKLESS_DRIVING</span>
+                  </div>
+                </div>
+              )}
+
               {/* Corner target outlines matching Sophisticated Dark Theme HTML */}
               <div className="absolute inset-4 pointer-events-none z-10">
                 <div className="absolute top-0 left-0 border-l-2 border-t-2 border-cyan-500 w-12 h-12 opacity-80" />
@@ -841,47 +848,37 @@ export default function App() {
               </div>
             </div>
 
-            {/* Simulated Voice Controller Section matches Sophisticated Dark */}
-            <div className="p-6 border-t border-white/10 bg-[#0A0A0A]">
+            {/* Incident Trigger Controller Section */}
+            <div className={`p-6 border-t border-white/10 transition-all duration-300 ${incidentLoggedFlash ? "bg-red-950/20" : "bg-[#0A0A0A]"}`}>
               <div className="flex flex-col md:flex-row items-center justify-between gap-5">
                 
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    {/* Voice Mic bubble styled from the model prompt */}
-                    <div className={`p-3.5 rounded-full border flex items-center justify-center transition-all ${pulseMic ? "bg-red-500/15 border-red-500 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.4)]" : "bg-cyan-500/10 border-cyan-500/30 text-cyan-400"}`}>
-                      <Mic className={`w-5 h-5 ${pulseMic ? "scale-110" : ""}`} />
+                    {/* Pulsing warning indicator */}
+                    <div className={`p-3.5 rounded-full border flex items-center justify-center transition-all duration-300 ${incidentLoggedFlash ? "bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)]" : "bg-red-500/5 border-red-500/20 text-red-500/60"}`}>
+                      <AlertCircle className={`w-5 h-5 ${incidentLoggedFlash ? "scale-125 animate-bounce" : ""}`} />
                     </div>
-                    {pulseMic && (
-                      <span className="absolute -inset-1.5 border border-red-500/40 rounded-full animate-ping" />
-                    )}
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Continuous Driver Voice Recognition</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Instant Bad Driver Incident Logger</h3>
                     <p className="text-[11.5px] text-slate-500 mt-1 font-mono">
-                      {activeSpeechCommand ? (
-                        <span className="text-red-400 font-bold animate-pulse">{activeSpeechCommand}</span>
+                      {incidentLoggedFlash ? (
+                        <span className="text-red-400 font-bold animate-pulse">⚠️ RECKLESS DRIVING INCIDENT REGISTERED</span>
                       ) : (
-                        <span>Listening for triggers: <span className="text-cyan-400 font-semibold italic">"Log Good Driver" / "Log Bad Driver"</span></span>
+                        <span>Tap the button when reckless driving is witnessed to log the current vehicle metadata.</span>
                       )}
                     </p>
                   </div>
                 </div>
 
-                {/* Simulated Triggers */}
-                <div className="flex gap-3 w-full md:w-auto">
-                  <button 
-                    onClick={() => handleManualActionLog("GOOD")}
-                    className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-cyan-500 text-black hover:bg-cyan-400 font-bold text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(34,211,238,0.2)] transition-all font-mono active:scale-95"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span>Say: "Good"</span>
-                  </button>
+                {/* Simulated Triggers - Just the Red Button */}
+                <div className="w-full md:w-auto">
                   <button 
                     onClick={() => handleManualActionLog("BAD")}
-                    className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded bg-red-600 text-white hover:bg-red-500 font-bold text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(239,68,68,0.2)] transition-all font-mono active:scale-95 border border-red-500/40"
+                    className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-red-600 text-white hover:bg-red-500 font-extrabold text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] transition-all font-mono active:scale-95 border border-red-500/50"
                   >
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span>Say: "Bad"</span>
+                    <AlertCircle className="w-4 h-4 text-white animate-pulse" />
+                    <span>INDICATE BAD DRIVER</span>
                   </button>
                 </div>
 
